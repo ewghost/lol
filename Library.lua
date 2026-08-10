@@ -84,7 +84,7 @@ local Library = {
     Flags = {},
     MenuKeybind = tostring(Enum.KeyCode.X),
 
-    Directory = "niggahack",
+    Directory = "landryhaxx",
     Folders = {
         Assets = "/Assets",
         Configs = "/Configs"
