@@ -7654,7 +7654,7 @@ do
                 Tooltip = Params.Tooltip or Params.tooltip or nil,
                 Max = Params.Max or Params.max or 100,
                 Callback = Params.Callback or Params.callback or function() end,
-                Decimals = Params.Decimals or Params.decimals or 0,
+                Decimals = Params.Decimals or Params.decimals or Params.Step or Params.step or 1,
                 Suffix = Params.Suffix or Params.suffix or "",
 
                 Window = Self.Window,
