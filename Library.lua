@@ -1932,7 +1932,7 @@ do
                     Alpha = Colorpicker.Alpha,
                     Color = Colorpicker.Color,
                     HexValue = Colorpicker.HexValue,
-                    Transparency = 1 - Colorpicker.Alpha
+                    Transparency = Colorpicker.Alpha
                 }
 
                 if not IsFromAlpha then
