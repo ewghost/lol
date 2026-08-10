@@ -9227,7 +9227,7 @@ do
                 local ConfigSelected
                 local ConfigsFolder = Library.Directory .. Library.Folders.Configs .. "/"
 
-                local ConfigsSection = ConfigsSubPage:Section({ Name = "Configs", Side = 1 })
+                local ConfigsSection = ConfigsSubPage:Section({ Name = "Configs", Side = "Left" })
                 do
                     local ConfigName
                     local ConfigSelected
@@ -9351,7 +9351,7 @@ do
             end
 
             do
-                local ThemingSection = OtherSubPage:Section({ Name = "Theming", Side = 1 })
+                local ThemingSection = OtherSubPage:Section({ Name = "Theming", Side = "Left" })
                 do
                     for Index, Value in Library.Theme do
                         ThemingSection:Label({ Name = Index }):Colorpicker({
@@ -9365,7 +9365,7 @@ do
                     end
                 end
 
-                local SettingsSection = OtherSubPage:Section({ Name = "Settings", Side = 2 })
+                local SettingsSection = OtherSubPage:Section({ Name = "Settings", Side = "Right" })
                 do
                     SettingsSection:Label({ Name = "UI Bind" }):Keybind({
                         Flag = "UIBind",
@@ -9414,7 +9414,7 @@ do
                     })
                 end
 
-                local WidgetsSection = OtherSubPage:Section({ Name = "Widgets", Side = 2 })
+                local WidgetsSection = OtherSubPage:Section({ Name = "Widgets", Side = "Right" })
                 do
                     for _, WidgetData in Library.SettingsWidgets do
                         local WidgetToggle = WidgetsSection:Toggle({
