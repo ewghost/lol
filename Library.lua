@@ -7352,7 +7352,7 @@ do
                     Params.Name = Params.Name or "Color"
                     
                     Self:Label({
-                        Text = Params.Name
+                        Name = Params.Name
                     }):Colorpicker(Params)
                 end
 
