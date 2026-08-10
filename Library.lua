@@ -6870,12 +6870,18 @@ do
             return setmetatable(Page, Library)
         end
 
-        Library.Section = function(Self, Params)
-            Params = Params or {}
+        Library.Section = function(Self, Name, Side)
+            Name = Name or "Section"
+
+            if Side == "Left" then
+                Side = 1
+            else
+                Side = 2
+            end
 
             local Section = {
-                Name = Params.Name or Params.name or "Section",
-                Side = Params.Side or Params.side or 1,
+                Name = Name,
+                Side = Side,
 
                 Window = Self.Window,
                 Page = Self,
