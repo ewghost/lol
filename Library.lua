@@ -7633,8 +7633,8 @@ do
             local Slider = {
                 Name = Params.Name or Params.name or "Slider",
                 Flag = Params.Flag or Params.flag or (Params.Name or Params.name),
-                Default = Params.Default or Params.default or 0,
                 Min = Params.Min or Params.min or 0,
+                Default = Params.Default or Params.default or (Params.Min or Params.min or 0),
                 Tooltip = Params.Tooltip or Params.tooltip or nil,
                 Max = Params.Max or Params.max or 100,
                 Callback = Params.Callback or Params.callback or function() end,
