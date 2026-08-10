@@ -7346,6 +7346,16 @@ do
                 Settingss.CanUpdateNow = false
                 Settingss.Frame = SettingsHolder
 
+                function Settingss:Colorpicker(Params)
+                    Params = Params or {}
+
+                    Params.Name = Params.Name or "Color"
+                    
+                    Self:Label({
+                        Text = Params.Name
+                    }):Colorpicker(Params)
+                end
+
                 function Settingss:SetOpen(Bool)
                     if Debounce then
                         return
