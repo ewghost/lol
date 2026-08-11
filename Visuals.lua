@@ -1,14 +1,3 @@
---[[
-    1/21/2026
-    Visuals.lua
-    Purpose:
-        Visual features to be used across all Niggahack games
-    Author: @.yxyv
-    Dependencies:
-        Animations
-        Directory
-]]
-
 local Visuals = {
     Instances = {},
     ScreenGui = nil,
@@ -17,13 +6,21 @@ local Visuals = {
 };
 
 Visuals.__index = Visuals;
+Visuals.Dependencies = { "Util" };
 
-local Animations = _G.Animations;
-local Directory = _G.Directory;
-local Utility = _G.Utility;
+local Global = getgenv();
+Global.Libraries = Global.Libraries or {};
+local Libraries = Global.Libraries;
+
+local Utility = Libraries.Util;
+assert(Utility, "Visuals dependency missing: Util must be loaded before Visuals");
+
+local Animations = Utility.Animations;
+local Directory = Utility.Directory;
 
 local Workspace = cloneref(game:GetService("Workspace"));
 local RunService = cloneref(game:GetService("RunService"));
+local UserInputService = cloneref(game:GetService("UserInputService"));
 
 local Camera = Workspace.CurrentCamera;
 
@@ -44,79 +41,12 @@ function Visuals:Beam(Parent, Style, Color, Color2, Transparency, Transparency2,
     local TextureVariant = tostring(Options.TextureVariant or "Light")
     local UseTravel = TravelSpeed ~= nil and TravelSpeed > 0
     local FadeDuration = 0.5
+    local StartColor = typeof(Color) == "Color3" and Color or Color3.fromRGB(255, 255, 255)
+    local EndColor = typeof(Color2) == "Color3" and Color2 or StartColor
 
-    if Style == "Line" then
-        local MainLine = Drawing.new("Line")
-        local OutlineLine = Drawing.new("Line")
-        local StartTime = tick()
-        local Destroyed = false
-        local RenderConnection
-        local From = Camera:WorldToViewportPoint(Origin)
-        local To = Camera:WorldToViewportPoint(Destination)
-        local SpawnVisible = (From.Z > 0) or (To.Z > 0)
-        local From2D = Vector2.new(From.X, From.Y)
-        local To2D = Vector2.new(To.X, To.Y)
-
-        MainLine.Visible = true
-        MainLine.ZIndex = 3
-        MainLine.Thickness = 1
-        MainLine.Color = Color
-        MainLine.Transparency = 1 - (Transparency or 0)
-
-        OutlineLine.Visible = true
-        OutlineLine.ZIndex = 2
-        OutlineLine.Thickness = 2
-        OutlineLine.Color = Color3.new(0, 0, 0)
-        OutlineLine.Transparency = MainLine.Transparency
-
-        RenderConnection = RunService.RenderStepped:Connect(function()
-            if Destroyed then
-                return
-            end
-
-            local Now = tick()
-            local Elapsed = Now - StartTime
-            local FadeAlpha = 1
-
-            if Elapsed >= Lifetime then
-                FadeAlpha = math.clamp(1 - ((Elapsed - Lifetime) / FadeDuration), 0, 1)
-            end
-
-            if FadeAlpha <= 0 then
-                Destroyed = true
-                if RenderConnection then
-                    RenderConnection:Disconnect()
-                    RenderConnection = nil
-                end
-                MainLine:Remove()
-                OutlineLine:Remove()
-                return
-            end
-
-            local Alpha = (1 - (Transparency or 0)) * FadeAlpha
-
-            MainLine.Visible = SpawnVisible
-            OutlineLine.Visible = SpawnVisible
-            if not SpawnVisible then
-                return
-            end
-
-            MainLine.From = From2D
-            MainLine.To = To2D
-            MainLine.Transparency = Alpha
-
-            OutlineLine.From = MainLine.From
-            OutlineLine.To = MainLine.To
-            OutlineLine.Transparency = Alpha
-        end)
-
-        return {
-            Beam = nil,
-            Model = nil,
-            Line = MainLine,
-            Outline = OutlineLine,
-        }
-    end
+    Transparency = tonumber(Transparency) or 0
+    Transparency2 = tonumber(Transparency2) or Transparency
+    Lifetime = tonumber(Lifetime) or 1
 
     local Model = Instance.new("Model", Parent);
 
@@ -153,8 +83,8 @@ function Visuals:Beam(Parent, Style, Color, Color2, Transparency, Transparency2,
     local Beam;
     local ExtraBeams = {}
     local BeamColor = Color ~= "Rainbow" and ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color),
-        ColorSequenceKeypoint.new(1, Color2),
+        ColorSequenceKeypoint.new(0, StartColor),
+        ColorSequenceKeypoint.new(1, EndColor),
     }) or ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
         ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
@@ -166,7 +96,7 @@ function Visuals:Beam(Parent, Style, Color, Color2, Transparency, Transparency2,
         NumberSequenceKeypoint.new(0, 0),
         NumberSequenceKeypoint.new(1, 0),
     }
-    if Style == "Flat" or Style == "Textured" then
+    if Style == "Flat" then
         Beam = Utility:Instance("Beam", {
             Brightness = 1,
             Color = BeamColor,
@@ -182,61 +112,6 @@ function Visuals:Beam(Parent, Style, Color, Color2, Transparency, Transparency2,
             Attachment1 = DestinationAttachment,
             FaceCamera = true,
             TextureSpeed = TextureSpeed,
-            Transparency = BeamTransparency,
-        });
-
-        if TextureVariant == "Dark" then
-            Beam.Brightness = 1
-            Beam.LightEmission = 0.25
-            Beam.LightInfluence = 1
-            Beam.Texture = "rbxassetid://12781848822"
-            Beam.TextureLength = 20
-            Beam.TextureMode = Enum.TextureMode.Static
-            Beam.Width0 = 0.5
-            Beam.Width1 = 0.5
-
-            local Beam2 = Beam:Clone()
-            Beam2.Name = "DarkBeam2"
-            Beam2.Attachment0 = OriginAttachment
-            Beam2.Attachment1 = DestinationAttachment
-            Beam2.Parent = Model
-            table.insert(ExtraBeams, Beam2)
-
-            local Beam3 = Beam:Clone()
-            Beam3.Name = "DarkBeam3"
-            Beam3.Attachment0 = OriginAttachment
-            Beam3.Attachment1 = DestinationAttachment
-            Beam3.Parent = Model
-            table.insert(ExtraBeams, Beam3)
-        else
-            Beam.Brightness = 5
-            Beam.LightEmission = 1
-            Beam.LightInfluence = 0
-            Beam.Texture = "rbxassetid://12781800668"
-            Beam.TextureLength = 4
-            Beam.TextureMode = Enum.TextureMode.Wrap
-            Beam.TextureSpeed = 10
-            Beam.Width0 = 0.5
-            Beam.Width1 = 0.5
-        end
-    end;
-
-    if Style == "Classic" then
-        Beam = Utility:Instance("Beam", {
-            Brightness = 5,
-            Color = BeamColor,
-            LightEmission = 1,
-            LightInfluence = 0,
-            Texture = "http://www.roblox.com/asset/?id=446111271",
-            TextureLength = 12,
-            TextureMode = "Static",
-            Width0 = 0.5,
-            Width1 = 0.5,
-            Attachment0 = OriginAttachment,
-            Attachment1 = DestinationAttachment,
-            FaceCamera = true,
-            TextureSpeed = TextureSpeed,
-            ZOffset = -1,
             Transparency = BeamTransparency,
         });
     end;
@@ -261,60 +136,46 @@ function Visuals:Beam(Parent, Style, Color, Color2, Transparency, Transparency2,
         });
     end;
 
-    if Style == "Laser" then
+    if Style == "Liquid" then
         Beam = Utility:Instance("Beam", {
-            Brightness = 5,
-            Color = BeamColor,
+            Texture = "rbxassetid://12788927812",
+            TextureLength = 10,
+            TextureMode = "Wrap",
+            TextureSpeed = 1,
+            Width0 = 0.3,
+            Width1 = 0.3,
             LightEmission = 1,
             LightInfluence = 0,
-            Texture = "rbxassetid://18654087326",
-            TextureLength = 1,
-            TextureMode = "Static",
-            Width0 = 0.2,
-            Width1 = 0.2,
+            Brightness = 1,
             Attachment0 = OriginAttachment,
-            FaceCamera = true,
             Attachment1 = DestinationAttachment,
-            TextureSpeed = TextureSpeed,
+            FaceCamera = true,
             Transparency = BeamTransparency,
+            Color = Color ~= "Rainbow" and ColorSequence.new({
+                ColorSequenceKeypoint.new(0, StartColor),
+                ColorSequenceKeypoint.new(0.5, Color3.new(1,1,1)),
+                ColorSequenceKeypoint.new(1, EndColor),
+            }) or BeamColor,
         });
     end;
 
-    if Style == "Energy" then
+    if Style == "Helix" then
         Beam = Utility:Instance("Beam", {
-            Brightness = 5,
-            Color = BeamColor,
+            Texture = "rbxassetid://7071778278",
+            Brightness = 1.5,
+            Transparency = BeamTransparency,
             LightEmission = 1,
             LightInfluence = 0,
-            Texture = "rbxassetid://13832105797",
-            TextureLength = 1,
-            TextureMode = "Static",
-            Width0 = 0.25,
-            Width1 = 0.25,
+            Segments = 1,
+            TextureLength = 12,
+            TextureMode = "Wrap",
+            TextureSpeed = 1,
+            Width0 = 0.6,
+            Width1 = 0.6,
+            FaceCamera = true,
             Attachment0 = OriginAttachment,
             Attachment1 = DestinationAttachment,
-            FaceCamera = true,
-            TextureSpeed = TextureSpeed,
-            Transparency = BeamTransparency,
-        });
-    end;
-
-    if Style == "Strand" then
-        Beam = Utility:Instance("Beam", {
-            Brightness = 5,
             Color = BeamColor,
-            LightEmission = 1,
-            LightInfluence = 0,
-            Texture = "rbxassetid://119094363918228",
-            TextureLength = 5,
-            TextureMode = "Static",
-            Width0 = 0.2,
-            Width1 = 0.2,
-            Attachment0 = OriginAttachment,
-            Attachment1 = DestinationAttachment,
-            FaceCamera = true,
-            TextureSpeed = TextureSpeed,
-            Transparency = BeamTransparency,
         });
     end;
 
@@ -343,35 +204,31 @@ function Visuals:Beam(Parent, Style, Color, Color2, Transparency, Transparency2,
         local Distance = (Destination - Origin).Magnitude
         local TravelTime = Distance / TravelSpeed
         if TravelTime > 0 then
-            Animations:Tween(DestinationPart, TweenInfo.new(TravelTime, Enum.EasingStyle.Linear), {
+            local TravelTween = Animations:Tween(DestinationPart, TweenInfo.new(TravelTime, Enum.EasingStyle.Linear), {
                 Position = Destination,
                 CFrame = CFrame.new(Destination),
             })
+            if TravelTween then
+                TravelTween:Play()
+            end
         end
     end
 
-    Animations:Tween(Beam, TweenInfo.new(5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out, 0, false, 0), {
+    local TextureTween = Animations:Tween(Beam, TweenInfo.new(5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out, 0, false, 0), {
         TextureSpeed = math.max(0.5, TextureSpeed * 0.2)
     });
-
-    if Style == "Flat" or Style == "Textured" then
-        if TextureVariant == "Light" then
-            local SpeedTween = Animations:Tween(Beam,
-                TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, 2, true), {
-                    TextureSpeed = 2
-                })
-            if SpeedTween then
-                SpeedTween:Play()
-            end
-        else
-            for _, ExtraBeam in next, ExtraBeams do
-                Animations:Tween(ExtraBeam,
-                    TweenInfo.new(5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out, 0, false, 0), {
-                        TextureSpeed = math.max(0.5, TextureSpeed * 0.2)
-                    })
-            end
-        end
+    if TextureTween then
+        TextureTween:Play()
     end
+
+    local SpeedTween = Animations:Tween(Beam,
+        TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, 2, true), {
+            TextureSpeed = 2
+        })
+    if SpeedTween then
+        SpeedTween:Play()
+    end
+
     --[[Animations:Basic({
         Component = Beam,
         Property = "TextureSpeed",
@@ -388,16 +245,26 @@ function Visuals:Beam(Parent, Style, Color, Color2, Transparency, Transparency2,
         });
 
         for _, ExtraBeam in next, ExtraBeams do
-            Animations:Tween(ExtraBeam, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {
+            local ExtraFadeTween = Animations:Tween(ExtraBeam, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {
                 Width0 = 0,
                 Width1 = 0,
                 TextureSpeed = 1,
                 Brightness = 0
             })
+            if ExtraFadeTween then
+                ExtraFadeTween:Play()
+            end
         end
 
         if FadeTween then
+            FadeTween:Play();
             FadeTween.Completed:Wait();
+            Model:Destroy();
+            if RainbowConnection then
+                RainbowConnection:Disconnect();
+                RainbowConnection = nil;
+            end;
+        else
             Model:Destroy();
             if RainbowConnection then
                 RainbowConnection:Disconnect();
@@ -410,9 +277,13 @@ function Visuals:Beam(Parent, Style, Color, Color2, Transparency, Transparency2,
         local Resolution = 12
         local Speed = 0.2
         local Span = 0.35
+        local RainbowAccumulator = 0
 
-        RainbowConnection = RunService.RenderStepped:Connect(function()
+        RainbowConnection = RunService.RenderStepped:Connect(function(DeltaTime)
             if not Beam or not Beam.Parent then return end
+            RainbowAccumulator += DeltaTime
+            if RainbowAccumulator < 1 / 30 then return end
+            RainbowAccumulator = 0
 
             local Time = tick() * Speed
             local Keypoints = table.create(Resolution + 1)
@@ -441,162 +312,363 @@ end;
 function Visuals:CreateFOVCircle()
     local FOVCircle = {};
     FOVCircle.__index = FOVCircle;
+
+    FOVCircle.Radius = 200;
+    FOVCircle.Thickness = 2;
+    FOVCircle.GlowSize = 18;
+    FOVCircle.GlowLayers = 8;
+    FOVCircle.GlowTransparency = 0.75;
+    FOVCircle.Transparency = 0;
+    FOVCircle.RotateSpeed = 1.2;
     FOVCircle.Saturation = 0.45;
+    FOVCircle.Color1 = Color3.fromRGB(255, 20, 147);
+    FOVCircle.Color2 = Color3.fromRGB(255, 255, 255);
+    FOVCircle.Rotation = 0;
+    FOVCircle.GlowEnabled = false;
+    FOVCircle.SpinEnabled = false;
+    FOVCircle.FillEnabled = false;
+    FOVCircle.FillTransparency = 0.85;
+    FOVCircle.SmoothPosition = Vector2.new(0, 0);
+    FOVCircle.HasExternalPosition = false;
+    FOVCircle.ExternalPosition = nil;
 
     FOVCircle.Holder = Utility:Instance("Frame", {
-        BackgroundTransparency = 1,
-        Parent = self.ScreenGui,
-        Size = UDim2.new(0, 460, 0, 460),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        Visible = true,
+        BackgroundTransparency = 1,
+        Size = UDim2.fromOffset(FOVCircle.Radius * 2, FOVCircle.Radius * 2),
+        Position = UDim2.fromScale(0.5, 0.5),
+        Parent = self.ScreenGui,
+        Visible = false,
     });
 
-    --// Circles
-    FOVCircle.Outline = Utility:Instance("Frame", {
+    FOVCircle.GlowHolder = Utility:Instance("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1, 0, 1, 0),
         ZIndex = 1,
         Parent = FOVCircle.Holder,
-        Visible = true,
     });
 
-    FOVCircle.Inline = Utility:Instance("Frame", {
-        BackgroundTransparency = 1,
-        ZIndex = 2,
-        Size = UDim2.new(1, 2, 1, 2),
-        Position = UDim2.new(0, -1, 0, -1),
-        Parent = FOVCircle.Outline,
-        Visible = true,
-    })
+    Utility:Instance("UICorner", {
+        CornerRadius = UDim.new(1, 0),
+        Parent = FOVCircle.GlowHolder,
+    });
 
-    FOVCircle.Glow = Utility:Instance("ImageLabel", {
+    FOVCircle.Circle = Utility:Instance("Frame", {
         AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromScale(1, 1),
         BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(1.13, 0, 1.13, 0),
-        Image = getcustomasset(Directory.Images .. "/GlowCircle.png"),
-        Parent = FOVCircle.Outline,
-        ZIndex = 0,
-        Visible = true,
-    });
-
-    --// Strokes
-    FOVCircle.OutlineStroke = Utility:Instance("UIStroke", {
-        Parent = FOVCircle.Outline,
-        Thickness = 4, --// or 3, 1
-        Color = Color3.fromRGB(0, 0, 0),
-        Enabled = false
-    });
-
-    FOVCircle.InlineStroke = Utility:Instance("UIStroke", {
-        Parent = FOVCircle.Inline,
-        Thickness = 2, --// or 3, 1
-        Color = Color3.fromRGB(255, 255, 255)
-    });
-
-    --// Gradients
-
-    FOVCircle.InlineGradient = Utility:Instance("UIGradient", {
-        Parent = FOVCircle.InlineStroke
-    });
-
-    FOVCircle.GlowGradient = Utility:Instance("UIGradient", {
-        Parent = FOVCircle.Glow,
-        Transparency = NumberSequence.new {
-            NumberSequenceKeypoint.new(0, 0.8),
-            NumberSequenceKeypoint.new(1, 0.8),
-        }
-    });
-
-    --// Corners
-    Utility:Instance("UICorner", {
-        Parent = FOVCircle.Outline,
-        CornerRadius = UDim.new(1, 0)
+        ZIndex = 5,
+        Parent = FOVCircle.Holder,
     });
 
     Utility:Instance("UICorner", {
-        Parent = FOVCircle.Inline,
-        CornerRadius = UDim.new(1, 0)
+        CornerRadius = UDim.new(1, 0),
+        Parent = FOVCircle.Circle,
     });
 
-    --// Functions
+    FOVCircle.Fill = Utility:Instance("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromScale(1, 1),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.85,
+        ZIndex = 2,
+        Parent = FOVCircle.Holder,
+        Visible = false,
+    });
+
+    Utility:Instance("UICorner", {
+        CornerRadius = UDim.new(1, 0),
+        Parent = FOVCircle.Fill,
+    });
+
+    FOVCircle.FillGradient = Utility:Instance("UIGradient", {
+        Parent = FOVCircle.Fill,
+    });
+
+    FOVCircle.OuterGlow = {};
+    for Index = 1, FOVCircle.GlowLayers do
+        local Stroke = Utility:Instance("UIStroke", {
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+            LineJoinMode = Enum.LineJoinMode.Round,
+            Thickness = 1,
+            Transparency = 1,
+            Color = Color3.new(1, 1, 1),
+            Enabled = false,
+            Parent = FOVCircle.GlowHolder,
+        });
+        local Gradient = Utility:Instance("UIGradient", {
+            Parent = Stroke,
+        });
+        FOVCircle.OuterGlow[Index] = { Stroke = Stroke, Gradient = Gradient };
+    end;
+
+    FOVCircle.InnerGlow = {};
+    for Index = 1, FOVCircle.GlowLayers do
+        local Frame = Utility:Instance("Frame", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.fromScale(0.5, 0.5),
+            Size = UDim2.fromScale(1, 1),
+            BackgroundTransparency = 1,
+            Parent = FOVCircle.GlowHolder,
+        });
+        Utility:Instance("UICorner", {
+            CornerRadius = UDim.new(1, 0),
+            Parent = Frame,
+        });
+        local Stroke = Utility:Instance("UIStroke", {
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+            LineJoinMode = Enum.LineJoinMode.Round,
+            Thickness = 1,
+            Transparency = 1,
+            Color = Color3.new(1, 1, 1),
+            Enabled = false,
+            Parent = Frame,
+        });
+        local Gradient = Utility:Instance("UIGradient", {
+            Parent = Stroke,
+        });
+        FOVCircle.InnerGlow[Index] = { Frame = Frame, Stroke = Stroke, Gradient = Gradient };
+    end;
+
+    FOVCircle.RingStroke = Utility:Instance("UIStroke", {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        LineJoinMode = Enum.LineJoinMode.Round,
+        Thickness = FOVCircle.Thickness,
+        Color = Color3.new(1, 1, 1),
+        Parent = FOVCircle.Circle,
+    });
+    FOVCircle.RingGradient = Utility:Instance("UIGradient", {
+        Parent = FOVCircle.RingStroke,
+    });
+
+    FOVCircle.InnerOutline = Utility:Instance("UIStroke", {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        LineJoinMode = Enum.LineJoinMode.Round,
+        Thickness = FOVCircle.Thickness,
+        Color = Color3.new(1, 1, 1),
+        Parent = FOVCircle.Circle,
+    });
+    FOVCircle.InnerGradient = Utility:Instance("UIGradient", {
+        Parent = FOVCircle.InnerOutline,
+    });
+
+    FOVCircle.InsetFrame = Utility:Instance("Frame", {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        Parent = FOVCircle.Circle,
+    });
+    Utility:Instance("UICorner", {
+        CornerRadius = UDim.new(1, 0),
+        Parent = FOVCircle.InsetFrame,
+    });
+    FOVCircle.InsetStroke = Utility:Instance("UIStroke", {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        LineJoinMode = Enum.LineJoinMode.Round,
+        Thickness = FOVCircle.Thickness,
+        Color = Color3.new(1, 1, 1),
+        Parent = FOVCircle.InsetFrame,
+    });
+    FOVCircle.InsetGradient = Utility:Instance("UIGradient", {
+        Parent = FOVCircle.InsetStroke,
+    });
+
+    function FOVCircle:BuildSequence()
+        return ColorSequence.new({
+            ColorSequenceKeypoint.new(0, self.Color1),
+            ColorSequenceKeypoint.new(1, self.Color2),
+        });
+    end;
+
+    function FOVCircle:ApplyGradients(Sequence, Rotation)
+        self.RingGradient.Color = Sequence;
+        self.RingGradient.Rotation = Rotation;
+        self.InnerGradient.Color = Sequence;
+        self.InnerGradient.Rotation = Rotation;
+        self.InsetGradient.Color = Sequence;
+        self.InsetGradient.Rotation = Rotation;
+        self.FillGradient.Color = Sequence;
+        self.FillGradient.Rotation = Rotation;
+        for Index = 1, #self.OuterGlow do
+            local Layer = self.OuterGlow[Index];
+            Layer.Gradient.Color = Sequence;
+            Layer.Gradient.Rotation = Rotation;
+        end;
+        for Index = 1, #self.InnerGlow do
+            local Layer = self.InnerGlow[Index];
+            Layer.Gradient.Color = Sequence;
+            Layer.Gradient.Rotation = Rotation;
+        end;
+    end;
+
     function FOVCircle:SetPosition(Position)
-        self.Holder.Position = Position
+        self.HasExternalPosition = true;
+        if typeof(Position) == "Vector2" then
+            self.ExternalPosition = Position;
+            self.Holder.Position = UDim2.fromOffset(Position.X, Position.Y);
+        elseif typeof(Position) == "UDim2" then
+            self.ExternalPosition = nil;
+            self.Holder.Position = Position;
+        end;
     end;
 
     function FOVCircle:SetRadius(Radius)
-        self.Holder.Size = UDim2.new(0, Radius, 0, Radius)
-        local GlowOffset = Radius * 0.13
-        self.Glow.Size = UDim2.new(0, Radius + GlowOffset, 0, Radius + GlowOffset)
-    end
+        Radius = tonumber(Radius) or self.Radius;
+        self.Radius = Radius;
+        local Diameter = Radius * 2;
+        self.Holder.Size = UDim2.fromOffset(Diameter, Diameter);
+    end;
 
     function FOVCircle:SetColor(Color1, Color2)
-        --// colors will be done in pairs because of the rainbow and stuffsss yeah idk we'll see
-        local Sequence = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color1),
-            ColorSequenceKeypoint.new(1, Color2),
-        });
+        if typeof(Color1) == "table" and typeof(Color1.Color) == "Color3" then
+            Color1 = Color1.Color;
+        end;
+        if typeof(Color2) == "table" and typeof(Color2.Color) == "Color3" then
+            Color2 = Color2.Color;
+        end;
+        Color1 = Color1 or self.Color1;
+        Color2 = Color2 or Color1;
+        self.Color1 = Color1;
+        self.Color2 = Color2;
+    end;
 
-        self.InlineGradient.Color = Sequence;
-        self.GlowGradient.Color = Sequence;
+    function FOVCircle:SetFill(State, Transparency)
+        self.FillEnabled = State == true;
+        self.FillTransparency = tonumber(Transparency) or self.FillTransparency;
+        self.Fill.Visible = self.FillEnabled;
+        self.Fill.BackgroundTransparency = self.FillTransparency;
+        self.FillGradient.Transparency = NumberSequence.new(self.FillTransparency);
+    end;
+
+    function FOVCircle:SetTransparency(Transparency)
+        self.Transparency = math.clamp(tonumber(Transparency) or self.Transparency or 0, 0, 1);
+    end;
+
+    function FOVCircle:SetGlow(State)
+        self.GlowEnabled = State == true;
     end;
 
     function FOVCircle:SetSpin(State)
-        if self.Connection then
-            self.Connection:Disconnect();
-            self.Connection = nil;
+        self.SpinEnabled = State == true;
+        if not self.SpinEnabled then
+            self.Rotation = 0;
         end;
-
-        if not State then
-            self.InlineGradient.Rotation = 0;
-            self.GlowGradient.Rotation = 0;
-            return
-        end;
-        local RotationOffset = 0
-
-        self.Connection = RunService.RenderStepped:Connect(function(DeltaTime)
-            RotationOffset = (RotationOffset + 1.2 * DeltaTime * 60) % 360;
-            self.InlineGradient.Rotation = RotationOffset;
-            self.GlowGradient.Rotation = RotationOffset;
-        end);
     end;
 
     function FOVCircle:SetRainbow(State)
-        if self.RainbowConnection then
-            self.RainbowConnection:Disconnect();
-            self.RainbowConnection = nil;
-        end;
-
-        if not State then
-            return
-        end;
-
-        self.RainbowConnection = RunService.RenderStepped:Connect(function()
-            local Time = tick() * 0.25 * 1.2;
-            local Span = 0.33;
-            local Sequence = {};
-
-            for Index = 0, 1, 0.1 do
-                local Hue = (Time + Index * Span) % 1;
-
-                local Saturation = self.Saturation;
-                local Value = 1;
-
-                Sequence[#Sequence + 1] = ColorSequenceKeypoint.new(Index, Color3.fromHSV(Hue, Saturation, Value));
-            end;
-
-            local ColorSeq = ColorSequence.new(Sequence);
-            self.InlineGradient.Color = ColorSeq;
-            self.GlowGradient.Color = ColorSeq;
-        end);
     end;
 
     function FOVCircle:SetVisible(State)
-        self.Holder.Visible = State;
+        self.Holder.Visible = State == true;
     end;
+
+    function FOVCircle:Update(Settings, DeltaTime)
+        Settings = typeof(Settings) == "table" and Settings or {};
+        DeltaTime = tonumber(DeltaTime) or (1 / 60);
+
+        local function GetColor(Value, Fallback)
+            if typeof(Value) == "Color3" then
+                return Value;
+            elseif typeof(Value) == "table" and typeof(Value.Color) == "Color3" then
+                return Value.Color;
+            end;
+            return Fallback;
+        end;
+
+        local Radius = Settings.Radius or Settings.FOVCircleRadius;
+        local Visible = Settings.Visible;
+        local Glow = Settings.Glow;
+        local Fill = Settings.Fill;
+        local Rotate = Settings.Rotate;
+        local Transparency = Settings.Transparency;
+
+        if Visible == nil then Visible = Settings.FOVCircle end;
+        if Glow == nil then Glow = Settings.FOVCircleGlow end;
+        if Fill == nil then Fill = Settings.FOVCircleFill end;
+        if Rotate == nil then Rotate = Settings.FOVCircleRotate end;
+
+        if Radius ~= nil then
+            self:SetRadius(Radius);
+        end;
+
+        self:SetColor(
+            GetColor(Settings.Color1 or Settings.FOVCircleGradient1, self.Color1),
+            GetColor(Settings.Color2 or Settings.FOVCircleGradient2, self.Color2)
+        );
+        self:SetGlow(Glow == true);
+        self:SetFill(Fill == true, Settings.FillTransparency);
+        self:SetTransparency(Transparency);
+        self:SetSpin(Rotate == true);
+
+        if Visible ~= nil then
+            self:SetVisible(Visible == true);
+        end;
+
+        if not self.Holder.Visible then
+            return;
+        end;
+
+        if not self.HasExternalPosition then
+            local Mouse = UserInputService:GetMouseLocation();
+            self.SmoothPosition = self.SmoothPosition:Lerp(Vector2.new(Mouse.X, Mouse.Y), math.clamp(DeltaTime * 12, 0, 1));
+            self.Holder.Position = UDim2.fromOffset(self.SmoothPosition.X, self.SmoothPosition.Y);
+        elseif self.ExternalPosition then
+            self.SmoothPosition = self.ExternalPosition;
+        end;
+        self.HasExternalPosition = false;
+
+        if self.SpinEnabled then
+            self.Rotation = (self.Rotation + self.RotateSpeed * DeltaTime * 60) % 360;
+        else
+            self.Rotation = 0;
+        end;
+
+        local Sequence = self:BuildSequence();
+        self:ApplyGradients(Sequence, self.Rotation);
+
+        local GlowOn = self.GlowEnabled;
+        local Layers = self.GlowLayers;
+        local Spread = self.GlowSize;
+        local BaseT = math.clamp(self.GlowTransparency + (1 - self.GlowTransparency) * self.Transparency, 0, 1);
+
+        for Index = 1, Layers do
+            local Frac = Index / Layers;
+            local T = BaseT + (1 - BaseT) * Frac;
+            local Outer = self.OuterGlow[Index];
+            if Outer then
+                Outer.Stroke.Enabled = GlowOn;
+                Outer.Stroke.Thickness = GlowOn and (self.Thickness + Spread * Frac) or 0;
+                Outer.Stroke.Transparency = GlowOn and T or 1;
+            end;
+            local Inner = self.InnerGlow[Index];
+            if Inner then
+                local Inset = Spread * Frac;
+                Inner.Frame.Size = UDim2.fromScale(1, 1) - UDim2.fromOffset(Inset * 2, Inset * 2);
+                Inner.Stroke.Enabled = GlowOn;
+                Inner.Stroke.Thickness = GlowOn and (Spread * Frac) or 0;
+                Inner.Stroke.Transparency = GlowOn and T or 1;
+            end;
+        end;
+
+        self.InsetStroke.Thickness = self.Thickness * 0.6;
+        self.RingStroke.Thickness = self.Thickness;
+        self.InnerOutline.Thickness = self.Thickness;
+        local RingTransparency = NumberSequence.new(self.Transparency);
+        self.RingStroke.Transparency = 0;
+        self.InnerOutline.Transparency = 0;
+        self.InsetStroke.Transparency = 0;
+        self.RingGradient.Transparency = RingTransparency;
+        self.InnerGradient.Transparency = RingTransparency;
+        self.InsetGradient.Transparency = RingTransparency;
+    end;
+
+    FOVCircle:SetRadius(FOVCircle.Radius);
+    FOVCircle:SetColor(FOVCircle.Color1, FOVCircle.Color2);
 
     return FOVCircle
 end;
@@ -736,7 +808,7 @@ function Visuals:CreateCrosshair()
     return Crosshair;
 end;
 
-function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
+function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale, Transparency)
     local Model = Instance.new("Model", Parent);
     local OriginPart = Instance.new("Part");
     OriginPart.Parent = Model;
@@ -749,6 +821,7 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
     local Emitter;
     local EffectLifetime = tonumber(Lifetime) or 2;
     local EffectScale = math.max(tonumber(Scale) or 1, 0.1);
+    local EffectTransparency = math.clamp(tonumber(Transparency) or 0, 0, 1);
     local function ScaleSequence(Sequence)
         local Keypoints = {};
         for _, Keypoint in ipairs(Sequence.Keypoints) do
@@ -759,6 +832,14 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
             );
         end;
         return NumberSequence.new(Keypoints)
+    end;
+    local function FadeSequence(StartValue, EndValue)
+        StartValue = EffectTransparency + (1 - EffectTransparency) * StartValue;
+        EndValue = EffectTransparency + (1 - EffectTransparency) * EndValue;
+        return NumberSequence.new({
+            NumberSequenceKeypoint.new(0, StartValue),
+            NumberSequenceKeypoint.new(1, EndValue),
+        })
     end;
 
     if Style == "Dot" then
@@ -787,6 +868,7 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
         Shards.SpreadAngle = Vector2.new(-360, 360);
         Shards.Squash = NumberSequence.new(0.10999999940395355);
         Shards.Texture = "rbxassetid://8030734851";
+        Shards.Transparency = FadeSequence(0, 0.7);
 
         local Slash = Instance.new("ParticleEmitter", Attachment);
         Slash.Name = "Slash";
@@ -810,6 +892,7 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
         Slash.SpreadAngle = Vector2.new(6, 6);
         Slash.Texture = "rbxassetid://17853203150";
         Slash.TimeScale = 0.7;
+        Slash.Transparency = FadeSequence(0, 0.7);
 
         local Sparkles = Instance.new("ParticleEmitter", Attachment);
         Sparkles.Name = "Sparkles";
@@ -837,6 +920,7 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
         Sparkles.Texture = "rbxassetid://10598374841";
         Sparkles.TimeScale = 0.8;
         Sparkles.ZOffset = -1;
+        Sparkles.Transparency = FadeSequence(0, 0.7);
 
         Shards:Emit(12);
         Slash:Emit(3);
@@ -872,11 +956,8 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
         Emitter.Acceleration = Vector3.new(0, 0, 0);
         Emitter.Size = NumberSequence.new(EffectScale);
 
+        Emitter.Transparency = FadeSequence(0, 0.7);
         Emitter:Emit(1);
-        Emitter.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0),
-            NumberSequenceKeypoint.new(1, 0.7),
-        });
         task.delay(EffectLifetime, function()
             OriginPart:Destroy();
             Emitter:Destroy();
@@ -909,11 +990,8 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
         Emitter.Acceleration = Vector3.new(0, 0, 0);
         Emitter.Size = NumberSequence.new(EffectScale);
 
+        Emitter.Transparency = FadeSequence(0, 0.7);
         Emitter:Emit(1);
-        Emitter.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0),
-            NumberSequenceKeypoint.new(1, 0.7),
-        });
         task.delay(EffectLifetime, function()
             OriginPart:Destroy();
             Emitter:Destroy();
@@ -948,11 +1026,8 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
         Emitter.ZOffset = 2.5;
         Emitter.Rate = 0.5;
 
+        Emitter.Transparency = FadeSequence(0, 0.7);
         Emitter:Emit(1);
-        Emitter.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0),
-            NumberSequenceKeypoint.new(1, 0.7),
-        });
         task.delay(EffectLifetime, function()
             OriginPart:Destroy();
             Emitter:Destroy();
@@ -985,11 +1060,8 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
         Emitter.Acceleration = Vector3.new(0, 0, 0);
         Emitter.Size = NumberSequence.new(EffectScale);
 
+        Emitter.Transparency = FadeSequence(0, 0.7);
         Emitter:Emit(1);
-        Emitter.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0),
-            NumberSequenceKeypoint.new(1, 0.7),
-        });
         task.delay(EffectLifetime, function()
             OriginPart:Destroy();
             Emitter:Destroy();
@@ -997,5 +1069,5 @@ function Visuals:CreateHitEffect(Parent, Style, Color, Origin, Lifetime, Scale)
     end;
 end;
 
-_G.Visuals = Visuals;
-return Visuals;
+Libraries.Visuals = Visuals;
+return Visuals
