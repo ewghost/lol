@@ -694,5 +694,7 @@ Util.Sounds = Sound;
 Util.Raycast = Raycast;
 Util.Elements = Elements;
 
+_G.Animations = Animations
+
 Libraries.Util = Util;
 return Util;
