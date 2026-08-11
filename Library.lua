@@ -50,11 +50,11 @@ local Library = {
 	Toggles = {};
 	Options = {};
 	Connections = {};
-	Directory = "Nhack";
+	Directory = "LandryHaxx";
 	Folders = { "/Fonts", "/Configs", "/Logs" };
 	CurrentWindow = nil;
 	AnimationSpeed = 1;
-	LogFile = "Nhack/Logs/Session.log";
+	LogFile = "LandryHaxx/Logs/Session.log";
 	AccentTargets = {};
 };
 
@@ -6318,7 +6318,7 @@ function Library:Build(opts)
 	self:CreateInstance("UIListLayout", { Parent = SecList; FillDirection = Enum.FillDirection.Vertical; SortOrder = Enum.SortOrder.LayoutOrder; Padding = NewUdim(0, 6); });
 	local Host = { LeftCol = SecList; RightCol = SecList; Sections = {}; RefreshCanvases = function() end };
 
-	local folder = tostring(opts.folder or "Nhack/Fallen/Builds");
+	local folder = tostring(opts.folder or "LandryHaxx/Fallen/Builds");
 	if typeof(isfolder) == "function" and not isfolder(folder) then pcall(function() makefolder(folder) end) end;
 	local function BasePath(name) return folder .. "/" .. tostring(name) .. ".json" end;
 	local function ListBases()
@@ -10346,7 +10346,7 @@ end;
 --// Dock (screen-wide top bar)
 function Library:Dock(opts)
 	opts = typeof(opts) == "table" and opts or {};
-	local text = tostring(opts.text or opts.Text or "Nhack");
+	local text = tostring(opts.text or opts.Text or "LandryHaxx");
 
 	if self.CurrentDock and typeof(self.CurrentDock.Gui) == "Instance" and self.CurrentDock.Gui.Parent then
 		self.CurrentDock.Gui:Destroy();
@@ -10607,7 +10607,7 @@ function Library:LuaEditor(opts)
 	local w = tonumber(opts.width) or 500;
 	local h = tonumber(opts.height) or 400;
 	local TitleText = tostring(opts.title or "Lua");
-	local folder = tostring(opts.folder or "Nhack/Luas");
+	local folder = tostring(opts.folder or "LandryHaxx/Luas");
 
 	if isfolder and not isfolder(folder) then
 		pcall(function() makefolder(folder) end);
@@ -10987,7 +10987,7 @@ function Library:LuaEditor(opts)
 	});
 
 	local function LoadCodeFont()
-		local dir  = "Nhack/Fonts";
+		local dir  = "LandryHaxx/Fonts";
 		local name = "CONSOLA";
 		local url  = "https://github.com/cascade-v/44/raw/refs/heads/main/CONSOLA.TTF";
 		local ttf  = dir .. "/" .. name .. ".ttf";
@@ -11315,26 +11315,26 @@ function Library:LuaEditor(opts)
 			if not setfenv then return end;
 			local baseEnv = (getgenv and getgenv()) or getfenv(0);
 			local api = Library.LuaApi;
-			local Nhack = (api and api.Nhack) or baseEnv.Nhack or (shared and shared.Nhack);
-			if not Nhack and api and api.LuaTab then Nhack = { LuaTab = api.LuaTab }; end;
-			if Nhack then
-				local Panel = Nhack.LuaTab or Library.CurrentLuaEditor;
+			local LandryHaxx = (api and api.LandryHaxx) or baseEnv.LandryHaxx or (shared and shared.LandryHaxx);
+			if not LandryHaxx and api and api.LuaTab then LandryHaxx = { LuaTab = api.LuaTab }; end;
+			if LandryHaxx then
+				local Panel = LandryHaxx.LuaTab or Library.CurrentLuaEditor;
 				if Panel and Panel.AddTab then
-					Nhack.AddTab = function(a, b)
+					LandryHaxx.AddTab = function(a, b)
 						local name = b; if name == nil then name = a; end;
 						return Panel:AddTab(name);
 					end;
 				end;
-				Nhack.Flags = Nhack.Flags or Library.Flags;
-				if getgenv then getgenv().Nhack = getgenv().Nhack or Nhack; end;
-				if shared then shared.Nhack = shared.Nhack or Nhack; end;
-				_G.Nhack = _G.Nhack or Nhack;
+				LandryHaxx.Flags = LandryHaxx.Flags or Library.Flags;
+				if getgenv then getgenv().LandryHaxx = getgenv().LandryHaxx or LandryHaxx; end;
+				if shared then shared.LandryHaxx = shared.LandryHaxx or LandryHaxx; end;
+				_G.LandryHaxx = _G.LandryHaxx or LandryHaxx;
 			end;
 			local env = setmetatable({
 				UI = Library.CurrentLuaEditor;
 				Editor = Library.CurrentLuaEditor;
 				Library = Library;
-				Nhack = Nhack;
+				LandryHaxx = LandryHaxx;
 				Flags = Library.Flags;
 				Targeting = api.Targeting or baseEnv.Targeting or (shared and shared.Targeting);
 				Raycast = api.Raycast or Library.Raycast;
