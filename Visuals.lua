@@ -24,10 +24,6 @@ local UserInputService = cloneref(game:GetService("UserInputService"));
 
 local Camera = Workspace.CurrentCamera;
 
-if not isfile(Directory.Images .. "/GlowCircle.png") then
-    writefile(Directory.Images .. "/GlowCircle.png", game:HttpGet('https://raw.githubusercontent.com/ewghost/lol/refs/heads/main/GlowCircle.png'))
-end
-
 Visuals.ScreenGui = Utility:Instance("ScreenGui", {
     Parent = gethui(),
     IgnoreGuiInset = true,
