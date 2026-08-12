@@ -6108,12 +6108,12 @@ function Library:Configs(opts)
 	if AutoloadName then
 		local p = self:ConfigPath(AutoloadName);
 		if typeof(isfile) == "function" and isfile(p) and typeof(readfile) == "function" then
-			local OkL, data = pcall(readfile, p);
-			if OkL and typeof(data) == "string" then
-				task.delay(2, function()
+			task.delay(2, function()
+				local OkL, data = pcall(readfile, p);
+				if OkL and typeof(data) == "string" then
 					self:LoadConfig(data);
-				end)
-			end;
+				end;
+			end)
 		end;
 	end;
 
