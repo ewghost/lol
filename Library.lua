@@ -6110,7 +6110,9 @@ function Library:Configs(opts)
 		if typeof(isfile) == "function" and isfile(p) and typeof(readfile) == "function" then
 			local OkL, data = pcall(readfile, p);
 			if OkL and typeof(data) == "string" then
-				self:LoadConfig(data);
+				task.delay(2, function()
+					self:LoadConfig(data);
+				end)
 			end;
 		end;
 	end;
